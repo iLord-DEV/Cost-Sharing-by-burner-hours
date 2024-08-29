@@ -19,6 +19,7 @@ function csbh_burner_hours_settings_page()
 {
     // Werte aus der Datenbank abrufen und sicherstellen, dass es ein Array ist
     $yearly_prices = get_option('csbh_yearly_prices', array());
+    $consumption_rate = get_option('csbh_consumption_rate', '1'); // Standardwert ist '1'
 
     // Sicherstellen, dass $yearly_prices tatsächlich ein Array ist
     if (!is_array($yearly_prices)) {
@@ -32,15 +33,25 @@ function csbh_burner_hours_settings_page()
     <div class="wrap">
         <h1>Manage Yearly Oil Prices</h1>
 
-        <?php if (!empty($years_without_price)) : ?>
-            <h2>Add Price for Year</h2>
-            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <input type="hidden" name="action" value="csbh_burner_hours_save_settings">
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="csbh_burner_hours_save_settings">
+
+            <h2>Global Settings</h2>
+            <table class="form-table">
+                <tr valign="top">
+                    <th scope="row">Consumption Rate (Liters per Burner Hour)</th>
+                    <td><input type="text" name="csbh_consumption_rate" value="<?php echo esc_attr($consumption_rate); ?>" /></td>
+                </tr>
+            </table>
+
+            <?php if (!empty($years_without_price)) : ?>
+                <h2>Add Price for Year</h2>
                 <table class="form-table">
                     <tr valign="top">
                         <th scope="row">Year</th>
                         <td>
                             <select name="new_year">
+                                <option value="">Select Year</option>
                                 <?php foreach ($years_without_price as $year) : ?>
                                     <option value="<?php echo esc_attr($year); ?>"><?php echo esc_html($year); ?></option>
                                 <?php endforeach; ?>
@@ -52,14 +63,10 @@ function csbh_burner_hours_settings_page()
                         <td><input type="text" name="new_price" value="" /></td>
                     </tr>
                 </table>
-                <?php submit_button('Add Year'); ?>
-            </form>
-        <?php endif; ?>
+            <?php endif; ?>
 
-        <?php if (!empty($yearly_prices)) : ?>
-            <h2>Existing Prices</h2>
-            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <input type="hidden" name="action" value="csbh_burner_hours_save_settings">
+            <?php if (!empty($yearly_prices)) : ?>
+                <h2>Existing Prices</h2>
                 <table class="wp-list-table widefat fixed striped">
                     <thead>
                         <tr>
@@ -84,9 +91,10 @@ function csbh_burner_hours_settings_page()
                         <?php endforeach; ?>
                     </tbody>
                 </table>
-                <?php submit_button('Save Changes'); ?>
-            </form>
-        <?php endif; ?>
+            <?php endif; ?>
+
+            <?php submit_button('Save Changes'); ?>
+        </form>
     </div>
 <?php
 }
@@ -100,6 +108,31 @@ function csbh_burner_hours_save_settings()
         $yearly_prices = array();
     }
 
+    // Verbrauchsrate speichern
+    if (isset($_POST['csbh_consumption_rate'])) {
+        $consumption_rate = sanitize_text_field($_POST['csbh_consumption_rate']);
+        update_option('csbh_consumption_rate', $consumption_rate);
+    }
+
+    // Jahr und Preis hinzufügen, nur wenn beide Felder ausgefüllt sind
+    if (!empty($_POST['new_year']) && !empty($_POST['new_price'])) {
+        $new_year = sanitize_text_field($_POST['new_year']);
+        $new_price = sanitize_text_field($_POST['new_price']);
+
+        // Fehlerüberprüfung
+        if (is_numeric($new_year) && is_numeric($new_price)) {
+            // Jahr hinzufügen, wenn es noch nicht existiert
+            if (!isset($yearly_prices[$new_year])) {
+                $yearly_prices[$new_year] = $new_price;
+                update_option('csbh_yearly_prices', $yearly_prices);
+            } else {
+                wp_die('Error: Year already exists.');
+            }
+        } else {
+            wp_die('Error: Year and Price must be numeric.');
+        }
+    }
+
     // Entfernen eines Jahres
     if (isset($_POST['csbh_remove_year'])) {
         $remove_year = sanitize_text_field($_POST['csbh_remove_year']);
@@ -111,29 +144,6 @@ function csbh_burner_hours_save_settings()
             exit;
         } else {
             wp_die('Error: Year to remove not found.');
-        }
-    }
-
-    // Jahr und Preis hinzufügen
-    if (isset($_POST['new_year']) && isset($_POST['new_price'])) {
-        $new_year = sanitize_text_field($_POST['new_year']);
-        $new_price = sanitize_text_field($_POST['new_price']);
-
-        // Fehlerüberprüfung
-        if (empty($new_year) || empty($new_price)) {
-            wp_die('Error: Year or Price not set.');
-        }
-
-        if (is_numeric($new_year) && is_numeric($new_price)) {
-            // Jahr hinzufügen, wenn es noch nicht existiert
-            if (!isset($yearly_prices[$new_year])) {
-                $yearly_prices[$new_year] = $new_price;
-                update_option('csbh_yearly_prices', $yearly_prices);
-            } else {
-                wp_die('Error: Year already exists.');
-            }
-        } else {
-            wp_die('Error: Year and Price must be numeric.');
         }
     }
 
