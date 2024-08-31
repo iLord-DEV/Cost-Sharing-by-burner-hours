@@ -1,0 +1,96 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Cost Sharing by Burner Hours\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 12:00+0000\n"
+"PO-Revision-Date: 2024-01-01 12:00+0000\n"
+"Last-Translator: Your Name <you@example.com>\n"
+"Language-Team: German <you@example.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: polib 1.1.0\n"
+"X-Poedit-KeywordsList: _e;__\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+
+msgid "Consumption Entries"
+msgstr ""
+
+msgid "Consumption Entry"
+msgstr ""
+
+msgid "Entry Archives"
+msgstr ""
+
+msgid "Entry Attributes"
+msgstr ""
+
+msgid "Parent Entry:"
+msgstr ""
+
+msgid "All Entries"
+msgstr ""
+
+msgid "Add New Entry"
+msgstr ""
+
+msgid "Add New"
+msgstr ""
+
+msgid "New Entry"
+msgstr ""
+
+msgid "Edit Entry"
+msgstr ""
+
+msgid "Update Entry"
+msgstr ""
+
+msgid "View Entry"
+msgstr ""
+
+msgid "View Entries"
+msgstr ""
+
+msgid "Search Entry"
+msgstr ""
+
+msgid "Not found"
+msgstr ""
+
+msgid "Not found in Trash"
+msgstr ""
+
+msgid "Featured Image"
+msgstr ""
+
+msgid "Set featured image"
+msgstr ""
+
+msgid "Remove featured image"
+msgstr ""
+
+msgid "Use as featured image"
+msgstr ""
+
+msgid "Insert into entry"
+msgstr ""
+
+msgid "Uploaded to this entry"
+msgstr ""
+
+msgid "Entries list"
+msgstr ""
+
+msgid "Entries list navigation"
+msgstr ""
+
+msgid "Filter entries list"
+msgstr ""
+
+msgid "Consumption Entry"
+msgstr ""
+
+msgid "A record of oil consumption for a specific period"
+msgstr ""

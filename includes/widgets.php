@@ -32,7 +32,7 @@ class CSBH_Consumption_Widget extends WP_Widget
         $total_costs = 0;
 
         echo '<table class="consumption-entries-table">';
-        echo '<thead><tr><th>Title</th><th>Arrival</th><th>Departure</th><th>Costs (€)</th></tr></thead>';
+        echo '<thead><tr><th>' .  __('Title', 'csbh')  . '</th><th>Arrival</th><th>Departure</th><th>Costs (€)</th></tr></thead>';
         echo '<tbody>';
         if ($query->have_posts()) {
             while ($query->have_posts()) {

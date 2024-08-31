@@ -5,28 +5,32 @@ if (!defined('ABSPATH')) exit;
 function csbh_burner_hours_admin_menu()
 {
     add_menu_page(
-        'Burner Hours Settings',         // Seitentitel
-        'Burner Hours Settings',         // Menütext
-        'manage_options',                // Berechtigung
-        'csbh_burner_hours_settings',    // Slug der Seite
-        'csbh_burner_hours_settings_page', // Callback-Funktion
-        'dashicons-admin-generic'        // Symbol
+        __('Burner Hours Settings', 'csbh'),         // Seitentitel
+        __('Burner Hours Settings', 'csbh'),         // Menütext
+        'manage_options',                            // Berechtigung
+        'csbh_burner_hours_settings',                // Slug der Seite
+        'csbh_burner_hours_settings_page',           // Callback-Funktion
+        'dashicons-admin-generic'                    // Symbol
     );
 }
 add_action('admin_menu', 'csbh_burner_hours_admin_menu');
 
 function csbh_burner_hours_settings_page()
 {
+    // Nonce für die Sicherheit
+    $nonce_action = 'csbh_burner_hours_save_settings';
+    $nonce_name = 'csbh_nonce';
+
     // Werte aus der Datenbank abrufen und sicherstellen, dass es ein Array ist
     $yearly_prices = get_option('csbh_yearly_prices', array());
-    $consumption_rate = get_option('csbh_consumption_rate', '1'); // Standardwert ist '1'
+    $consumption_rate = get_option('csbh_consumption_rate', '1');
+    $show_all_entries = get_option('csbh_show_all_entries', false);
 
-    // Sicherstellen, dass $yearly_prices tatsächlich ein Array ist
     if (!is_array($yearly_prices)) {
         $yearly_prices = array();
     }
 
-    // Jahre abrufen, für die es Posts gibt, aber noch keinen Preis
+    // Jahre ohne Preis abrufen
     $years_without_price = csbh_get_years_without_price($yearly_prices);
 
 ?>
@@ -34,6 +38,7 @@ function csbh_burner_hours_settings_page()
         <h1>Manage Yearly Oil Prices</h1>
 
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <?php wp_nonce_field($nonce_action, $nonce_name); ?>
             <input type="hidden" name="action" value="csbh_burner_hours_save_settings">
 
             <h2>Global Settings</h2>
@@ -41,6 +46,10 @@ function csbh_burner_hours_settings_page()
                 <tr valign="top">
                     <th scope="row">Consumption Rate (Liters per Burner Hour)</th>
                     <td><input type="text" name="csbh_consumption_rate" value="<?php echo esc_attr($consumption_rate); ?>" /></td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row">Show All Entries</th>
+                    <td><input type="checkbox" name="csbh_show_all_entries" <?php checked($show_all_entries, true); ?> /> Show all consumption entries in the admin area</td>
                 </tr>
             </table>
 
@@ -101,7 +110,11 @@ function csbh_burner_hours_settings_page()
 
 function csbh_burner_hours_save_settings()
 {
-    // Sicherstellen, dass $yearly_prices immer ein Array ist
+    // Überprüfen der Nonce
+    if (!isset($_POST['csbh_nonce']) || !wp_verify_nonce($_POST['csbh_nonce'], 'csbh_burner_hours_save_settings')) {
+        wp_die('Nonce verification failed.');
+    }
+
     $yearly_prices = get_option('csbh_yearly_prices', array());
 
     if (!is_array($yearly_prices)) {
@@ -114,13 +127,17 @@ function csbh_burner_hours_save_settings()
         update_option('csbh_consumption_rate', $consumption_rate);
     }
 
+    // Option für das Anzeigen aller Einträge speichern
+    $show_all_entries = isset($_POST['csbh_show_all_entries']) ? true : false;
+    update_option('csbh_show_all_entries', $show_all_entries);
+
     // Jahr und Preis hinzufügen, nur wenn beide Felder ausgefüllt sind
     if (!empty($_POST['new_year']) && !empty($_POST['new_price'])) {
         $new_year = sanitize_text_field($_POST['new_year']);
         $new_price = sanitize_text_field($_POST['new_price']);
 
         // Fehlerüberprüfung
-        if (is_numeric($new_year) && is_numeric($new_price)) {
+        if (ctype_digit($new_year) && is_numeric($new_price)) {
             // Jahr hinzufügen, wenn es noch nicht existiert
             if (!isset($yearly_prices[$new_year])) {
                 $yearly_prices[$new_year] = $new_price;
@@ -172,21 +189,24 @@ function csbh_get_years_without_price($yearly_prices)
 {
     global $wpdb;
 
-    // Holen Sie sich die Jahre, die Posts haben, aber noch keinen Preis
-    $years = $wpdb->get_col("
-        SELECT DISTINCT YEAR(meta_value) 
-        FROM $wpdb->postmeta 
-        WHERE meta_key = 'arrival_date' 
-        AND post_id IN (
-            SELECT ID FROM $wpdb->posts WHERE post_type = 'consumption_entry'
-        )
-        ORDER BY meta_value ASC
-    ");
+    // Caching der Jahre ohne Preis
+    $cache_key = 'csbh_years_without_price';
+    $years_without_price = wp_cache_get($cache_key);
 
-    // Filtern Sie die Jahre heraus, die bereits einen Preis haben
-    $years_without_price = array_diff($years, array_keys($yearly_prices));
+    if ($years_without_price === false) {
+        $years = $wpdb->get_col("
+            SELECT DISTINCT YEAR(meta_value) 
+            FROM $wpdb->postmeta 
+            WHERE meta_key = 'arrival_date' 
+            AND post_id IN (
+                SELECT ID FROM $wpdb->posts WHERE post_type = 'consumption_entry'
+            )
+            ORDER BY meta_value ASC
+        ");
 
-    error_log("Years without price: " . implode(", ", $years_without_price));
+        $years_without_price = array_diff($years, array_keys($yearly_prices));
+        wp_cache_set($cache_key, $years_without_price);
+    }
 
     return $years_without_price;
 }
